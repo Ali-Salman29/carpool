@@ -1,10 +1,15 @@
-from dis import Instruction
+"""
+this script contains all models definitions for our carpool application
+"""
 from tkinter import CASCADE
 from django.db import models
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class Cars(models.Model):
+    """
+    models to save Users car information
+    """
     car_model= models.CharField(max_length=200)
     make_year= models.IntegerField()
     color= models.CharField(max_length=50)
@@ -13,16 +18,25 @@ class Cars(models.Model):
     user_id=models.ForeignKey('User',on_delete=models.CASCADE)
 
 class City(models.Model):
+    """
+    model to store cities
+    """
     name=models.CharField()
     id=models.PositiveSmallIntegerField()
 
 class Route(models.Model):
+    """
+    model to store users travel information
+    """
     id= models.IntegerField()
     rate=models.IntegerField()
     to_city=models.ForeignKey('City',on_delete=models.CASCADE)
     from_city=models.ForeignKey('City',on_delete=models.CASCADE)
 
 class Rides(models.Model):
+    """
+    model to show available rides to the user
+    """
     ride_id=models.IntegerField(primary_key=True)
     available_seats=models.IntegerField()
     booked_seats =models.IntegerField()
@@ -35,7 +49,10 @@ class Rides(models.Model):
     pickup_location=models.JSONField()
     dropoff_location=models.JSONField()
 
-class Registered_Rides(models.Model):
+class RegisteredRides(models.Model):
+    """
+    model to show rides history to client and significant info for service provider
+    """
     user_id=models.ForeignKey('User',unique=True,on_delete=models.CASCADE)
     ride_id=models.ForeignKey('Rides',unique=True,on_delete=models.CASCADE)
     Instructions=models.CharField(max_length=500)
@@ -43,6 +60,9 @@ class Registered_Rides(models.Model):
     date=models.DateField()
 
 class Location(models.Model):
+    """
+    model to store users locations history and information
+    """
     location_id=models.SlugField(primary_key=True)
     address=models.CharField()
     latitude=models.CharField()
