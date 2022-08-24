@@ -2,12 +2,14 @@
 this script contains all models definitions for our carpool application
 """
 import jsonfield
+
 from django.db import models
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+APP_LABEL = 'rides'
 
-class Cars(models.Model):
+class Car(models.Model):
     """
     models to save Users car information
     """
@@ -18,20 +20,29 @@ class Cars(models.Model):
     registration_number = models.CharField(max_length=100)
     owner = models.ForeignKey(User,on_delete=models.CASCADE)
 
+    class Meta:
+        app_label = APP_LABEL
+
 class City(models.Model):
     """
     model to store cities
     """
     name = models.CharField(max_length=100)
 
+    class Meta:
+        app_label = APP_LABEL
+        verbose_name = "Cities"
+
 class Route(models.Model):
     """
     model to store users travel information
     """
-    id = models.IntegerField(primary_key=True)
     rate = models.IntegerField()
-    to_city = models.ForeignKey(City,on_delete=models.CASCADE,related_name='to_city')
-    from_city = models.ForeignKey(City,on_delete=models.CASCADE,related_name='from_city')
+    to_city = models.ForeignKey(City, on_delete=models.CASCADE, related_name='to_city')
+    from_city = models.ForeignKey(City, on_delete=models.CASCADE, related_name='from_city')
+
+    class Meta:
+        app_label = APP_LABEL
 
 class Ride(models.Model):
     """
@@ -45,26 +56,29 @@ class Ride(models.Model):
     GenderOptions = [('MALE','male'),('FEMALE','female'),('NONE','none')]
     available_seats = models.IntegerField()
     booked_seats = models.IntegerField()
-    status = models.CharField(max_length=10,choices=RideOptions,default='AVAILABLE')
-    gender = models.CharField(max_length=10,choices=GenderOptions,default='NONE')
-    route = models.ForeignKey(Route,on_delete=models.CASCADE)
-    user = models.ForeignKey(User,on_delete=models.CASCADE)
-    car = models.ForeignKey(Cars,on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, choices=RideOptions, default='AVAILABLE')
+    gender = models.CharField(max_length=10, choices=GenderOptions, default='NONE')
+    route = models.ForeignKey(Route, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    car = models.ForeignKey(Car, on_delete=models.CASCADE)
     date = models.DateField()
-    pickup_location = jsonfield.JSONField(default={},blank=True)
-    dropoff_location =jsonfield.JSONField(default={},blank=True)
+    pickup_location = jsonfield.JSONField(default={}, blank=True)
+    dropoff_location =jsonfield.JSONField(default={}, blank=True)
+
+    class Meta:
+        app_label = APP_LABEL
     
-class RegisteredRides(models.Model):
+class RegisteredRide(models.Model):
     """
     model to show rides history to client and significant info for service provider
     """
     instructions = models.CharField(max_length=500)
-    number_of_riders = models.IntegerField()
+    number_of_riders = models.IntegerField(default=1)
     date = models.DateField()
-    ride_id=models.ForeignKey(Ride,on_delete=models.CASCADE)
-    user=models.ForeignKey(User,on_delete=models.CASCADE)
+    ride_id = models.ForeignKey(Ride, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
     class Meta:
-        """
-        added together relations of User and Rides model
-        """
         unique_together = ('user', 'ride_id')
+        app_label = APP_LABEL
+        verbose_name = "Registered Rides"
