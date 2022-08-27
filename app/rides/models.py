@@ -20,6 +20,8 @@ class Car(models.Model):
     registration_number = models.CharField(max_length=100)
     owner = models.ForeignKey(User,on_delete=models.CASCADE)
 
+    def __str__(self):
+        return "{}-{}".format(self.car, self.make_year)
     class Meta:
         app_label = APP_LABEL
 
@@ -29,6 +31,8 @@ class City(models.Model):
     """
     name = models.CharField(max_length=100)
 
+    def __str__(self):
+        return self.name
     class Meta:
         app_label = APP_LABEL
         verbose_name = "Cities"
@@ -41,6 +45,8 @@ class Route(models.Model):
     to_city = models.ForeignKey(City, on_delete=models.CASCADE, related_name='to_city')
     from_city = models.ForeignKey(City, on_delete=models.CASCADE, related_name='from_city')
 
+    def __str__(self):
+        return "{}-{}".format(self.to_city, self.from_city)
     class Meta:
         app_label = APP_LABEL
 
@@ -61,9 +67,12 @@ class Ride(models.Model):
     route = models.ForeignKey(Route, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     car = models.ForeignKey(Car, on_delete=models.CASCADE)
-    date = models.DateField()
+    date = models.DateTimeField()
     pickup_location = jsonfield.JSONField(default={}, blank=True)
     dropoff_location =jsonfield.JSONField(default={}, blank=True)
+
+    def __str__(self):
+        return "{}-{}".format(str(self.route), self.date)
 
     class Meta:
         app_label = APP_LABEL
@@ -72,11 +81,20 @@ class RegisteredRide(models.Model):
     """
     model to show rides history to client and significant info for service provider
     """
+    StatusOptions = [
+        ('BOOKED', 'Booked'),
+        ('PENDING', 'Pending'),
+        ('WITHDRAWAL', 'Withdrawal'),
+    ]
+
     instructions = models.CharField(max_length=500)
     number_of_riders = models.IntegerField(default=1)
     date = models.DateField()
     ride_id = models.ForeignKey(Ride, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    pickup = models.CharField(max_length=200, null=True)
+    dropoff = models.CharField(max_length=200, null=True)
+    status = models.CharField(max_length=12, choices=StatusOptions, default='PENDING')
 
     class Meta:
         unique_together = ('user', 'ride_id')
