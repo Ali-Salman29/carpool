@@ -30,6 +30,7 @@ class City(models.Model):
     model to store cities
     """
     name = models.CharField(max_length=100)
+    province = models.CharField(max_length=100, null=True)
 
     def __str__(self):
         return self.name
