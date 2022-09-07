@@ -2,12 +2,13 @@
 Accounts Api urls
 """
 from django.urls import path
-from rest_framework.authtoken import views
-from accounts.api.views import LogoutAPIView, RegisterAPIView, UserListView, UserAPIView, CurrentUserAPIView
+from accounts.api.views import (
+    LogoutAPIView, RegisterAPIView, UserListView, UserAPIView, CurrentUserAPIView, CustomAuthToken
+)
 
 urlpatterns = [
     path('register', RegisterAPIView.as_view(), name='api_register'),
-    path('login', views.obtain_auth_token, name="api_login"),
+    path('login', CustomAuthToken.as_view(), name="api_login"),
     path('logout/', LogoutAPIView.as_view(), name="api_logout"),
     path('users', UserListView.as_view(), name='api_show_users'),
     path('current_user/', CurrentUserAPIView.as_view(), name='api_current_user'),

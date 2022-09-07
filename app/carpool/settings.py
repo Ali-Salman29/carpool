@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'phonenumber_field',
     'accounts',
     "rides",
-    "upload"
+    "upload",
+    "import_export",
 ]
 
 MIDDLEWARE = [
