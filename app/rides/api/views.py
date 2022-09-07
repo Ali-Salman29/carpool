@@ -47,19 +47,26 @@ class RideViewSet(viewsets.ModelViewSet):
         seats = self.request.query_params.get('seats', None)
         to_city = self.request.query_params.get('to_city', None)
         from_city = self.request.query_params.get('from_city', None)
-
         rides = Ride.objects.filter(status="AVAILABLE")
         if date:
-            rides = rides.filter(date=date)
-        if to_city and from_city:
-            rides = rides.filter(route__to_city=to_city, route__from_city=from_city)
+            rides = rides.filter(date__contains=date)
+        if to_city:
+            rides = rides.filter(route__to_city=to_city)
+        if from_city:
+            rides = rides.filter(route__from_city=from_city)
         if seats:
             rides = rides.filter(available_seats=seats)
         return rides
     
     @action(detail=False, methods=['get'])
     def get_all_cities(self, requset):
-        cities = City.objects.all()
+        rides = self.get_queryset()
+        city_ids = []
+        if self.request.query_params.get('from_city', None):
+            city_ids = rides.values_list('route__to_city', flat=True).distinct()
+        else:
+            city_ids = rides.values_list('route__from_city', flat=True).distinct()
+        cities = City.objects.filter(id__in=city_ids)
         city_serializer = CitySerializer(cities, many=True)
         return HttpResponse(json.dumps(city_serializer.data), content_type='application/json')
     
@@ -68,15 +75,15 @@ class RideViewSet(viewsets.ModelViewSet):
         date = self.request.query_params.get('date', None)
         rides = Ride.objects.filter(status="AVAILABLE", route__to_city=to_city)
         if date:
-            rides = rides.filter(date=date)
+            rides = rides.filter(date__contains=date)
         city_ids = rides.values_list('route__from_city', flat=True).distinct()
         cities = City.objects.filter(id__in=city_ids)
         city_serializer = CitySerializer(cities, many=True)
         return HttpResponse(json.dumps(city_serializer.data), content_type='application/json')
 
-class AvailableRidesViewSet(generics.ListAPIView):
+class RegisterRide(generics.ListAPIView):
     """
-    Ride Viewset
+    Register Ride Viewset
     """
     serializer_class = RideSerializer
     permission_classes = [IsAuthenticated]
