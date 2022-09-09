@@ -61,8 +61,8 @@ class Ride(models.Model):
         ('AVAILABLE', 'Available'),
     ]
     GenderOptions = [('MALE','male'),('FEMALE','female'),('NONE','none')]
-    available_seats = models.IntegerField()
-    booked_seats = models.IntegerField()
+    available_seats = models.IntegerField(default=0)
+    booked_seats = models.IntegerField(default=0)
     status = models.CharField(max_length=10, choices=RideOptions, default='AVAILABLE')
     gender = models.CharField(max_length=10, choices=GenderOptions, default='NONE')
     route = models.ForeignKey(Route, on_delete=models.CASCADE)
