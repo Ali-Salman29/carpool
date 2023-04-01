@@ -55,8 +55,8 @@ class RideViewSet(viewsets.ModelViewSet):
         seats = self.request.query_params.get('seats', None)
         to_city = self.request.query_params.get('to_city', None)
         from_city = self.request.query_params.get('from_city', None)
-        # rides = Ride.objects.filter(status="AVAILABLE")
-        rides = Ride.objects.all()
+        rides = Ride.objects.filter(status="AVAILABLE")
+        # rides = Ride.objects.all()
         if date:
             rides = rides.filter(date__contains=date)
         if to_city:

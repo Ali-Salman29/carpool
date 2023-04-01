@@ -69,15 +69,29 @@ class Ride(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     car = models.ForeignKey(Car, on_delete=models.CASCADE)
     date = models.DateTimeField()
-    pickup_location = jsonfield.JSONField(default={}, blank=True)
-    dropoff_location =jsonfield.JSONField(default={}, blank=True)
+    pickup_locations = models.ManyToManyField('Location')
+    dropoff_locations = models.ManyToManyField('Location')
 
     def __str__(self):
         return "{}-{}".format(str(self.route), self.date)
 
     class Meta:
         app_label = APP_LABEL
-    
+
+class Location(models.Model):
+    """
+    model to specify location with coordinates
+    """
+    ride = models.ForeignKey(Ride, on_delete=models.CASCADE)
+    location = models.PointField()
+    address = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"location for Ride {self.ride.pk}"
+
+    class Meta:
+        app_label = APP_LABEL
+
 class RegisteredRide(models.Model):
     """
     model to show rides history to client and significant info for service provider
