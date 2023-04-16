@@ -9,7 +9,20 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 APP_LABEL = 'rides'
 
-class Car(models.Model):
+class TimeStampedModel(models.Model):
+    """
+    TimeStampedModel
+
+    An abstract base class model that provides self-managed "created" and
+    "modified" fields.
+    """
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+         abstract = True
+
+class Car(TimeStampedModel):
     """
     models to save Users car information
     """
@@ -47,11 +60,11 @@ class Route(models.Model):
     from_city = models.ForeignKey(City, on_delete=models.CASCADE, related_name='from_city')
 
     def __str__(self):
-        return "{}-{}".format(self.to_city, self.from_city)
+        return f"{self.from_city}-{self.to_city}"
     class Meta:
         app_label = APP_LABEL
 
-class Ride(models.Model):
+class Ride(TimeStampedModel):
     """
     model to show available rides to the user
     """
@@ -102,7 +115,7 @@ class Location(models.Model):
     class Meta:
         app_label = APP_LABEL
 
-class RegisteredRide(models.Model):
+class RegisteredRide(TimeStampedModel):
     """
     model to show rides history to client and significant info for service provider
     """
@@ -114,14 +127,13 @@ class RegisteredRide(models.Model):
 
     instructions = models.CharField(max_length=500)
     number_of_riders = models.IntegerField(default=1)
-    date = models.DateField()
-    ride_id = models.ForeignKey(Ride, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    pickup = models.CharField(max_length=200, null=True)
-    dropoff = models.CharField(max_length=200, null=True)
+    ride = models.ForeignKey(Ride, on_delete=models.CASCADE)
+    pickup = models.ForeignKey(Location, null=True, on_delete=models.CASCADE, related_name='pickup')
+    dropoff = models.ForeignKey(Location, null=True, on_delete=models.CASCADE, related_name='dropoff')
     status = models.CharField(max_length=12, choices=StatusOptions, default='PENDING')
 
     class Meta:
-        unique_together = ('user', 'ride_id')
+        unique_together = ('user', 'ride')
         app_label = APP_LABEL
         verbose_name = "Registered Rides"

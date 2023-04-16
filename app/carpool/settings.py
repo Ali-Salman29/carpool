@@ -164,7 +164,7 @@ REST_FRAMEWORK = {
 }
 
 PUSH_NOTIFICATIONS_SETTINGS = {
-        "FCM_API_KEY": "AAAAOSyu7hs:APA91bG9-LeNTQj8ZS6k2JR8FYZ0FfgLOwyqnvDszceRMNPBeRkQmPfKXA48nc3agl7Mna1akUDUh8V-fY_N_fyVlRq3w1tDEwaXvmWSHT7Q2XU-Toa9qQaQUIey8g2wYCF-GWhVPKEs",
+        "FCM_API_KEY": os.environ.get("FCM_API_TOKEN", ""),
         # "GCM_API_KEY": "[your api key]",
         # TODO: Add this certificate https://medium.com/scalereal/push-notifications-through-django-db528c303b91
         #"APNS_CERTIFICATE": "/path/to/your/certificate.pem",

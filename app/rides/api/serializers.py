@@ -6,21 +6,6 @@ from rest_framework import serializers
 from rides.models import Car, Ride, Route, City, RegisteredRide, Location
 from django.contrib.gis.geos import Point
 
-
-class RegisteredRideSerializer(serializers.ModelSerializer):
-    """
-    The Serializer Serializes the Ride Object
-    """
-    class Meta:
-        """
-        Meta Class
-        """
-        model = RegisteredRide
-        fields = ['id', 'instructions',
-                  'number_of_riders', 'date', 'ride_id', 'user']
-        read_only_fields = ['id', 'user']
-
-
 class CarSerializer(serializers.ModelSerializer):
     """
     The Serializer Serializes the Car Object
@@ -96,7 +81,7 @@ class LocationSerializer(serializers.ModelSerializer):
         Meta Class
         """
         model = Location
-        fields = ['address', 'location']
+        fields = ['id', 'address', 'location']
 
 
 class RideSerializer(serializers.ModelSerializer):
@@ -185,3 +170,30 @@ class RideSerializer(serializers.ModelSerializer):
             Location.objects.create(ride=instance, **dropoff_location_data)
 
         return instance
+
+class RegisteredRideSerializer(serializers.ModelSerializer):
+    """
+    The Serializer Serializes the Ride Object
+    """
+    class Meta:
+        """
+        Meta Class
+        """
+        model = RegisteredRide
+        fields = "__all__"
+        read_only_fields = ['id', 'user']
+    
+    def validate(self, data):
+        """
+        Validate fields
+        """
+        data = super(RegisteredRideSerializer, self).validate(data)
+
+        ride = Ride.objects.prefetch_related('pickup_locations', 'dropoff_locations').get(id=data['ride'].id)
+        if not ride.pickup_locations.filter(id=data['pickup'].id).exists():
+            raise serializers.ValidationError("Invalide pickup location")
+        
+        if not ride.dropoff_locations.filter(id=data['dropoff'].id).exists():
+            raise serializers.ValidationError("Invalide dropoff location")
+    
+        return data

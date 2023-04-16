@@ -9,8 +9,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters import rest_framework as filters
 
-from rides.api.serializers import RideSerializer, CarSerializer, CitySerializer
-from rides.models import Car, Ride, City, Location
+from rides.api.serializers import RideSerializer, CarSerializer, CitySerializer, RegisteredRideSerializer
+from rides.models import Car, Ride, City, Location, RegisteredRide
 from rides.api.permissions import IsOwnerOrAdmin
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
@@ -86,9 +86,9 @@ class CityViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = City.objects.all()
 
-class RideViewSet(viewsets.ModelViewSet):
+class RiderRideViewSet(viewsets.ModelViewSet):
     """
-    Ride Viewset
+    Create, Update, Retrieve Rides
     """
     serializer_class = RideSerializer
     permission_classes = [IsAuthenticated]
@@ -98,13 +98,37 @@ class RideViewSet(viewsets.ModelViewSet):
         Save user object before creating
         """
         serializer.save(user=self.request.user)
-    
+   
     def get_queryset(self):
         """
         Returns filterd rides based on query parms
         """
-        
-        queryset = Ride.objects.all()
+        queryset = Ride.objects.filter(user=self.request.user)
+        return queryset
+
+class RideViewSet(viewsets.ModelViewSet):
+    """
+    A view that returns a list of rides.
+
+    This view supports the following query parameters:
+        - from_city: Filters rides based on the starting city name.
+        - to_city: Filters rides based on the destination city name.
+        - date: Filters rides based on the departure date.
+
+    If the following query parameters are present, the view applies additional geo filters:
+        - user_pickup_lat: The latitude of the pickup location.
+        - user_pickup_lon: The longitude of the pickup location.
+        - user_dropoff_lat: The latitude of the dropoff location.
+        - user_dropoff_lon: The longitude of the dropoff location.
+    """
+    serializer_class = RideSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        """
+        Returns filterd rides based on query parms
+        """
+        queryset = Ride.objects.filter(status='AVAILABLE').exclude(user=self.request.user)
         data = self.request.GET.dict()
         if 'pickup_max_distance' not in data:
             data['pickup_max_distance'] = 5
@@ -113,27 +137,7 @@ class RideViewSet(viewsets.ModelViewSet):
         
         queryset = RideFilter(data, queryset=queryset).qs
         return queryset
-    
-    # def get_queryset(self):
-    #     """
-    #     Return filtered queryset
-    #     """
-    #     date = self.request.query_params.get('date', None)
-    #     seats = self.request.query_params.get('seats', None)
-    #     to_city = self.request.query_params.get('to_city', None)
-    #     from_city = self.request.query_params.get('from_city', None)
-    #     rides = Ride.objects.filter(status="AVAILABLE")
-    #     # rides = Ride.objects.all()
-    #     if date:
-    #         rides = rides.filter(date__contains=date)
-    #     if to_city:
-    #         rides = rides.filter(route__to_city=to_city)
-    #     if from_city:
-    #         rides = rides.filter(route__from_city=from_city)
-    #     if seats:
-    #         rides = rides.filter(available_seats=seats)
-    #     return rides
-    
+
     @action(detail=False, methods=['get'])
     def get_all_cities(self, requset):
         """
@@ -163,51 +167,22 @@ class RideViewSet(viewsets.ModelViewSet):
         city_serializer = CitySerializer(cities, many=True)
         return HttpResponse(json.dumps(city_serializer.data), content_type='application/json')
 
-class RideAPIListView(generics.ListAPIView):
-    """
-    A view that returns a list of rides.
-
-    This view supports the following query parameters:
-        - from_city: Filters rides based on the starting city name.
-        - to_city: Filters rides based on the destination city name.
-        - date: Filters rides based on the departure date.
-
-    If the following query parameters are present, the view applies additional geo filters:
-        - user_pickup_lat: The latitude of the pickup location.
-        - user_pickup_lon: The longitude of the pickup location.
-        - user_dropoff_lat: The latitude of the dropoff location.
-        - user_dropoff_lon: The longitude of the dropoff location.
-    """
-    serializer_class = RideSerializer
-    permission_classes = [AllowAny]
-
-    def get_queryset(self):
-        """
-        Returns filterd rides based on query parms
-        """
-        
-        queryset = Ride.objects.filter(status='AVAILABLE').exclude(user=self.request.user)
-        data = self.request.GET.dict()
-        if 'pickup_max_distance' not in data:
-            data['pickup_max_distance'] = 5
-        if 'dropoff_max_distance' not in data:
-            data['dropoff_max_distance'] = 5
-        
-        queryset = RideFilter(data, queryset=queryset).qs
-        return queryset
-
-class RegisterRide(generics.ListAPIView):
+class RegisteredRideViewSet(viewsets.ModelViewSet):
     """
     Register Ride Viewset
     """
-    serializer_class = RideSerializer
+    serializer_class = RegisteredRideSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """
         Return filtered queryset
         """
-        queryset = Ride.objects.all()
-        self.request.query_params.get('to')
-
-
+        queryset = RegisteredRide.objects.filter(user=self.request.user)
+        return queryset
+    
+    def perform_create(self, serializer):
+        """
+        Save user object before creating
+        """
+        serializer.save(user=self.request.user)
