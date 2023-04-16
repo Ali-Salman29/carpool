@@ -3,7 +3,7 @@ this script contains all models definitions for our carpool application
 """
 import jsonfield
 
-from django.db import models
+from django.contrib.gis.db import models
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -69,8 +69,8 @@ class Ride(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     car = models.ForeignKey(Car, on_delete=models.CASCADE)
     date = models.DateTimeField()
-    pickup_locations = models.ManyToManyField('Location')
-    dropoff_locations = models.ManyToManyField('Location')
+    pickup_locations = models.ManyToManyField('Location', related_name='pickup_locations')
+    dropoff_locations = models.ManyToManyField('Location', related_name='dropoff_locations')
 
     def __str__(self):
         return "{}-{}".format(str(self.route), self.date)
@@ -86,6 +86,16 @@ class Location(models.Model):
     location = models.PointField()
     address = models.CharField(max_length=100)
 
+    @property
+    def location_coordinates(self):
+        """
+        Returns location coordinates
+        """
+        return {
+            'latitude': self.location.y,
+            'longitude': self.location.x
+        }
+    
     def __str__(self):
         return f"location for Ride {self.ride.pk}"
 

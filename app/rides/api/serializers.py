@@ -1,117 +1,187 @@
 """
 Ride Serializers
 """
-from dataclasses import fields
-import json
-from xml.dom import ValidationErr
 from rest_framework import serializers
 
-from rides.models import Car, Ride, Route, City, RegisteredRide
+from rides.models import Car, Ride, Route, City, RegisteredRide, Location
+from django.contrib.gis.geos import Point
 
-class CitySerializer(serializers.ModelSerializer):
+
+class RegisteredRideSerializer(serializers.ModelSerializer):
     """
+    The Serializer Serializes the Ride Object
     """
     class Meta:
-        model = City
-        fields = ['id', 'name']
+        """
+        Meta Class
+        """
+        model = RegisteredRide
+        fields = ['id', 'instructions',
+                  'number_of_riders', 'date', 'ride_id', 'user']
+        read_only_fields = ['id', 'user']
 
-class RouteSerializer(serializers.ModelSerializer):
-    """
-    """
-    to_city = CitySerializer(read_only=True)
-    from_city = CitySerializer(read_only=True)
-
-    class Meta:
-        model = Route
-        fields = ['to_city', 'from_city', 'rate']
 
 class CarSerializer(serializers.ModelSerializer):
     """
-    Model Serializer for car
+    The Serializer Serializes the Car Object
     """
     class Meta:
         """
-        Model Mata Class
+        Meta Class
         """
         model = Car
-        fields = ['id', 'car', 'make_year', 'color', 'seating_capacity', 'registration_number']
+        fields = '__all__'
         read_only_fields = ['id', 'owner']
 
-class LocationSerializer(serializers.Serializer):
+
+class CitySerializer(serializers.ModelSerializer):
     """
+    The Serializer Serializes the City Object 
     """
-    address = serializers.CharField(required=True)
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
-    longitute = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    class Meta:
+        """
+        Meta Class
+        """
+        model = City
+        fields = '__all__'
+
+
+class RouteSerializer(serializers.ModelSerializer):
+    """
+    The Serializer Serializes the Route Object
+    """
+    to_city = CitySerializer()
+    from_city = CitySerializer()
+
+    class Meta:
+        model = Route
+        fields = '__all__'
+
+
+class PointSerializer(serializers.Serializer):
+    """
+    Serializer for a geographic point using Django's PointField.
+    """
+    longitude = serializers.FloatField()
+    latitude = serializers.FloatField()
+
+    def to_representation(self, value):
+        """
+        Convert the Point object to a dictionary with longitude and latitude coordinates.
+        """
+        if isinstance(value, Point):
+            return {'longitude': value.x, 'latitude': value.y}
+        return None
+
+    def to_internal_value(self, data):
+        """
+        Convert the dictionary with x and y coordinates to a Point object.
+        """
+        try:
+            longitude = float(data['longitude'])
+            latitude = float(data['latitude'])
+            return Point(longitude, latitude)
+        except (TypeError, KeyError, ValueError):
+            raise serializers.ValidationError("Invalid point coordinates")
+
+
+class LocationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for a Location Object
+    """
+    location = PointSerializer()
+
+    class Meta:
+        """
+        Meta Class
+        """
+        model = Location
+        fields = ['address', 'location']
+
 
 class RideSerializer(serializers.ModelSerializer):
     """
-    Model Serializer for Ride
+    Serializer for the Ride Object
     """
-    car_data = CarSerializer(read_only=True, source='car')
-    route_data = RouteSerializer(read_only=True, source='route')
-    date = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S')
-    pickup_location = LocationSerializer(many=True)
-    dropoff_location = LocationSerializer(many=True)
+    pickup_locations = LocationSerializer(many=True, required=True)
+    dropoff_locations = LocationSerializer(many=True, required=True)
     to_city = serializers.IntegerField(required=True, write_only=True)
     from_city = serializers.IntegerField(required=True, write_only=True)
+    car_id = serializers.IntegerField(required=True, write_only=True)
+    car = CarSerializer(read_only=True)
+    route = RouteSerializer(read_only=True)
+
+    class Meta:
+        """
+        Meta Class
+        """
+        model = Ride
+        fields = '__all__'
+        read_only_fields = [
+            'id', 'user', 'booked_seats', 'status', 'route',
+        ]
 
     def create(self, validated_data):
         """
+        Creates a ride from the validated data
+
+        Args:
+            validated_data (dict): serializable data
+
+        Returns:
+            Ride: Newly created ride
         """
+        pickup_locations_data = validated_data.pop('pickup_locations', [])
+        dropoff_locations_data = validated_data.pop('dropoff_locations', [])
+
         from_city = validated_data.pop('from_city', None)
         to_city = validated_data.pop('to_city', None)
-        if not (to_city and from_city):
-            raise serializers.ValidationError('to_city and from_city are required')
+        car_id = validated_data.pop('car_id', None)
+
         try:
-            route = Route.objects.get(to_city=to_city, from_city=from_city)
-        except Route.DoesNotExist:
-            raise serializers.ValidationError(f"route from {from_city} to {to_city} doesn't exsist")
-        
-        validated_data['route'] = route
-        ride = Ride.objects.create(**validated_data)
+            route = Route.objects.get(from_city=from_city, to_city=to_city)
+        except Route.DoesNotExist as exc:
+            raise serializers.ValidationError(
+                f"route from {from_city} to {to_city} doesn't exsist") from exc
+
+        car = Car.objects.get(id=car_id)
+        ride = Ride.objects.create(route=route, car=car, **validated_data)
+
+        pickup_locations = []
+        for pickup_location_data in pickup_locations_data:
+            location = Location.objects.create(
+                ride=ride, **pickup_location_data)
+            pickup_locations.append(location)
+
+        dropoff_location = []
+        for dropoff_location_data in dropoff_locations_data:
+            location = Location.objects.create(
+                ride=ride, **dropoff_location_data)
+            dropoff_location.append(location)
+
+        ride.pickup_locations.set(pickup_locations)
+        ride.dropoff_locations.set(dropoff_location)
+
         return ride
 
     def update(self, instance, validated_data):
         """
+        TODO: Update this function
         """
-        from_city = validated_data.pop('from_city', None)
-        to_city = validated_data.pop('to_city', None)
-        if not (to_city and from_city):
-            raise serializers.ValidationError('to_city and from_city are required')
-        try:
-            route = Route.objects.get(to_city=to_city, from_city=from_city)
-        except Route.DoesNotExist:
-            raise serializers.ValidationError(f"route from {from_city} to {to_city} doesn't exsist")
-        validated_data['route'] = route
+        pickup_locations_data = validated_data.pop('pickup_locations', [])
+        dropoff_locations_data = validated_data.pop('dropoff_locations', [])
 
-        return super(RideSerializer, self).update(instance, validated_data)
-    
-    def to_representation(self, value):
-        """
-        Returns content of a version, data will remain in json format
-        """
-        if not isinstance(value.pickup_location, list): 
-            value.pickup_location = json.loads(value.pickup_location)
-            value.dropoff_location = json.loads(value.dropoff_location)
-        return super(RideSerializer, self).to_representation(value)
-    
-    class Meta:
-        model = Ride
-        fields = [
-            'id', 'available_seats', 'booked_seats', 
-            'gender', 'route', 'car', 'date', 'pickup_location', 'dropoff_location',
-            'car_data', 'route_data', 'to_city', 'from_city',
-        ]
-        read_only_fields = [
-            'id', 'user', 'booked_seats', 'status', 'car_data',
-            'route_data', 'route',
-        ]
+        car_id = validated_data.pop('car_id', None)
+        car = Car.objects.get(id=car_id)
+        instance.car = car
+        instance.save()
 
-class RegisteredRideSerializer(serializers.ModelSerializer):
-    """
-    """
-    class Meta:
-        model = RegisteredRide
-        fields = ['id', 'instructions', 'number_of_riders', 'date', 'ride_id', 'user']
-        read_only_fields = ['id', 'user']
+        Location.objects.filter(ride=instance).delete()
+
+        for pickup_location_data in pickup_locations_data:
+            Location.objects.create(ride=instance, **pickup_location_data)
+
+        for dropoff_location_data in dropoff_locations_data:
+            Location.objects.create(ride=instance, **dropoff_location_data)
+
+        return instance

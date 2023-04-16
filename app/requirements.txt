@@ -6,3 +6,6 @@ djangorestframework
 django-phonenumber-field[phonenumbers]
 django-import-export
 pytz
+GDAL==3.2.3
+django-filter
+django-push-notifications

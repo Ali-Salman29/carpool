@@ -39,8 +39,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'rest_framework.authtoken',
+    'django.contrib.gis',
+    "rest_framework.authtoken",
+    'django_filters',
     'phonenumber_field',
+    'push_notifications',
     'accounts',
     "rides",
     "upload",
@@ -159,3 +162,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
 }
+
+PUSH_NOTIFICATIONS_SETTINGS = {
+        "FCM_API_KEY": "AAAAOSyu7hs:APA91bG9-LeNTQj8ZS6k2JR8FYZ0FfgLOwyqnvDszceRMNPBeRkQmPfKXA48nc3agl7Mna1akUDUh8V-fY_N_fyVlRq3w1tDEwaXvmWSHT7Q2XU-Toa9qQaQUIey8g2wYCF-GWhVPKEs",
+        # "GCM_API_KEY": "[your api key]",
+        # TODO: Add this certificate https://medium.com/scalereal/push-notifications-through-django-db528c303b91
+        #"APNS_CERTIFICATE": "/path/to/your/certificate.pem",
+}
+
+GDAL_LIBRARY_PATH = '/usr/lib/libgdal.so'
